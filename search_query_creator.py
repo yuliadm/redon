@@ -79,3 +79,18 @@ def build_prompt(task_instruction: str, format_instruction: str, tools: list, qu
     
 # Build the input and start the inference
 xlam_format_tools = convert_to_xlam_tool(openai_format_tools)
+
+import json
+def create_search_query_from_question(question):
+    content = build_prompt(task_instruction, format_instruction, xlam_format_tools, question)
+    messages=[
+        { 'role': 'user', 'content': content}
+    ]
+    inputs = tokenizer.apply_chat_template(messages, add_generation_prompt=True, return_tensors="pt").to(model.device)
+
+    # tokenizer.eos_token_id is the id of <|EOT|> token
+    outputs = model.generate(inputs, max_new_tokens=512, do_sample=False, num_return_sequences=1, eos_token_id=tokenizer.eos_token_id)
+    output = tokenizer.decode(outputs[0][len(inputs[0]):], skip_special_tokens=True)
+    output = json.loads(output)['tool_calls'][0]
+    return output['arguments']['word1'] + ' AND ' +  output['arguments']['word2']
+create_search_query_from_question('Which materials can I use to build a supercapacitor, to ensure that it will be biodegradable?')
