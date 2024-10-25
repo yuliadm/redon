@@ -1,0 +1,3 @@
+[submodule "redon_frontend"]
+	path = redon_frontend
+	url = git@github.com:sofyalaski/redon_frontend.git
