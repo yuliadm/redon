@@ -2,6 +2,7 @@ import datetime
 import requests
 import arxiv
 import fitz
+from bs4 import BeautifulSoup
 
 def get_citation_count(paper_name: str)->int:
     """
@@ -10,7 +11,7 @@ def get_citation_count(paper_name: str)->int:
     :return: the citation count of the paper, None if the paper is not found or the request fails
     """
     url = f'https://scholar.google.com/scholar?hl=en&as_sdt=0%2C5&q={paper_name}&btnG='
-    response = requests.get(url)
+    response = requests.get(url) 
     if response.status_code == 200:
         content = response.text
         citations = content.split('Cited by ')
@@ -52,3 +53,14 @@ def get_paper_text(paper: arxiv.Result)->str:
         for page in pdf:
             text += page.get_text()
     return text
+
+def get_uni_ranking(uni):
+    url = f'https://www.universityrankings.ch/results?ranking=Times&region=World&year=2025&q={uni}'
+    response = requests.get(url)
+    if response.status_code == 200:
+        content = response.text
+        soup = BeautifulSoup(content, 'html.parser')
+        # Find a span with class 'rank-no'
+        rank = soup.find_all('span', class_='rank')[0]
+        return rank.text
+    return None

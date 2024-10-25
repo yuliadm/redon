@@ -93,4 +93,46 @@ def create_search_query_from_question(question):
     output = tokenizer.decode(outputs[0][len(inputs[0]):], skip_special_tokens=True)
     output = json.loads(output)['tool_calls'][0]
     return output['arguments']['word1'] + ' AND ' +  output['arguments']['word2']
-create_search_query_from_question('Which materials can I use to build a supercapacitor, to ensure that it will be biodegradable?')
+
+def extract_university(text):
+    format_instruction = """
+    The output MUST strictly adhere to the following JSON format, and NO other text MUST be included.
+    The example format is as follows. Please make sure the parameter type is correct. ALWAYS give an answer.
+    ```
+    {
+        "tool_calls": [
+        {"name": "get_ranking", "arguments": {"university_name": "Berkeley University"}},
+        ]
+    }
+    """.strip()
+
+    get_ranking = {
+        "name": "get_ranking",
+        "description": "Get the ranking of a university",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "university_name": {
+                    "type": "string",
+                    "description": "The name of the university"
+                }
+            },
+            "required": ["university_name"]
+        }
+    }
+
+    openai_format_tools = [get_ranking]
+    xlam_format_tools = convert_to_xlam_tool(openai_format_tools)
+    content = build_prompt(task_instruction, format_instruction, xlam_format_tools, text)
+    messages=[
+        { 'role': 'user', 'content': content}
+    ]
+    inputs = tokenizer.apply_chat_template(messages, add_generation_prompt=True, return_tensors="pt").to(model.device)
+
+    outputs = model.generate(inputs, max_new_tokens=512, do_sample=False, num_return_sequences=1, eos_token_id=tokenizer.eos_token_id)
+    output = tokenizer.decode(outputs[0][len(inputs[0]):], skip_special_tokens=True)
+    try:
+        output = json.loads(output)['tool_calls'][0]
+        return output['arguments']['university_name']
+    except:
+        return None
